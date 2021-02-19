@@ -32,8 +32,8 @@ async def positions(context):
 
 @bot.command()
 async def buy(context, ticker, quantity):
-    print(f"Recieved a buy order for {quantity} shares of {ticker}")
-    if(context.author == "Scarzer#8810"):
+    print(f"Recieved a buy order for {quantity} shares of {ticker} from {context.author}")
+    if("Scarzer#8810" == str(context.author)):
         buy_order = api.submit_order(ticker, quantity, 'buy', 'market', 'day')
     else:
         buy_order = "No"
