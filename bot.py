@@ -39,29 +39,6 @@ async def buy(context, ticker, quantity):
         buy_order = "No"
     await context.send(f"{buy_order}")
 
-@bot.command()
-async def test(context, ticker):
-    print(f"Checking the price of a stonk")
-    try:
-        # last_trade_price = api.get_last_trade(ticker)
-        # await context.send(f"Last price ${last_trade_price.price}")
-        bars = api.get_barset(ticker, 'day', limit=1000)
-        bars = bars.df[ticker]
-        
-        fig = io.BytesIO()
-        
-        plt.title(f"{ticker} -- Last Price ${bars.tail(1)['close'].values[0]:.02f}")
-        plt.plot(bars["close"])
-        plt.savefig(fig, format="png")
-        fig.seek(0)
-
-        await context.send(file=discord.File(fig, f"{ticker}.png"))
-        plt.close()
-
-    except HTTPError:
-        await context.send(f"I failed finding the stock")
-
-
 
 @bot.command()
 async def check(context, ticker):
