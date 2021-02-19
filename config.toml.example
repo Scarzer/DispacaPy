@@ -1,0 +1,6 @@
+[alpaca]
+id = ALPACA_API_ID
+secret = ALPACA_API_SECRET
+
+[discord]
+token = DISCORD_BOT_TOKEN
