@@ -51,7 +51,7 @@ async def check(context, ticker):
         
         fig = io.BytesIO()
         
-        plt.title(f"{ticker} -- Last Price {bars.tail(1)['close']}")
+        plt.title(f"{ticker} -- Last Price {bars.tail(1)['close'].values[0]:.02f}")
         plt.plot(bars["close"])
         plt.savefig(fig, format="png")
         fig.seek(0)
