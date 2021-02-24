@@ -39,6 +39,9 @@ async def buy(context, ticker, quantity):
         buy_order = "No"
     await context.send(f"{buy_order}")
 
+@bot.command()
+async def test(context):
+    await context.send(f"Your ID is {context.author.id}")
 
 @bot.command()
 async def check(context, ticker):
