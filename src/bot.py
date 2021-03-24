@@ -3,16 +3,12 @@ import matplotlib.pyplot as plt
 import alpaca_trade_api as tradeapi
 from discord.ext import commands
 from requests.models import HTTPError
-import io, toml
-
-
-config = toml.load('./config.toml')
-
+import io, os
 
 ## CONSTANTS
-TOKEN = config["discord"]["token"]
-ALPACA_KEY_ID = config["alpaca"]["id"]
-ALPACA_KEY_SECRET = config["alpaca"]["secret"]
+TOKEN = os.environ.get("DISCORD_TOKEN")
+ALPACA_KEY_ID = os.environ.get("ALPACA_KEY_ID")
+ALPACA_KEY_SECRET = os.environ.get("ALPACA_KEY_SECRET")
 
 plt.rcParams.update({'xtick.labelsize' : 'small',
                      'ytick.labelsize' : 'small',
@@ -44,11 +40,12 @@ async def test(context):
     await context.send(f"Your ID is {context.author.id}")
 
 @bot.command()
-async def check(context, ticker):
+async def check(context, *ticker):
     print(f"Checking the price of a stonk")
     try:
         # last_trade_price = api.get_last_trade(ticker)
         # await context.send(f"Last price ${last_trade_price.price}")
+        print(ticker)
         bars = api.get_barset(ticker, 'day', limit=1000)
         bars = bars.df[ticker]
         
