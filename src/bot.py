@@ -4,6 +4,7 @@ import alpaca_trade_api as tradeapi
 from discord.ext import commands
 from requests.models import HTTPError
 import io, os
+from . import dispaca
 
 ## CONSTANTS
 TOKEN = os.environ.get("DISCORD_TOKEN")
@@ -62,7 +63,9 @@ async def check(context, *ticker):
 @bot.command()
 async def account(context):
     print(f"Checking account")
-    await context.send(f"{api.get_account()}")
+    account_info = api.get_account()
+    account_embed = dispaca.generate_account_embed(account_info)
+    await context.send(embed=account_embed)
 
 @bot.command()
 async def orders(context):
