@@ -29,10 +29,7 @@ async def positions(context):
 @bot.command()
 async def buy(context, ticker, quantity):
     print(f"Recieved a buy order for {quantity} shares of {ticker} from {context.author}")
-    if("Scarzer#8810" == str(context.author)):
-        buy_order = api.submit_order(ticker, quantity, 'buy', 'market', 'day')
-    else:
-        buy_order = "No"
+    buy_order = api.submit_order(ticker, quantity, 'buy', 'market', 'day')
     await context.send(f"{buy_order}")
 
 @bot.command()
@@ -46,7 +43,7 @@ async def check(context, *ticker):
         # last_trade_price = api.get_last_trade(ticker)
         # await context.send(f"Last price ${last_trade_price.price}")
         print(ticker)
-        bars = api.get_barset(ticker, 'day', limit=1000)
+        bars = api.get_barset(ticker, 'day', limit=100)
         bars = bars.df[ticker]
         
         fig = io.BytesIO()
