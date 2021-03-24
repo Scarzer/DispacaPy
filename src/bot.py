@@ -24,7 +24,6 @@ bot = commands.Bot(command_prefix='>')
 async def positions(context):
     positions = api.list_positions()    
     await context.send(f"Positions: {positions}")
-    await context.send(f"{context.author}")
 
 @bot.command()
 async def buy(context, ticker, quantity):
