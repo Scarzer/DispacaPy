@@ -1,7 +1,6 @@
 import discord
 from alpaca_trade_api import rest
 
-
 ## Embed Generation was done with the help of the discord embed sandbox
 ## https://cog-creators.github.io/discord-embed-sandbox/
 

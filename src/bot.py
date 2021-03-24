@@ -4,7 +4,6 @@ import alpaca_trade_api as tradeapi
 from discord.ext import commands
 from requests.models import HTTPError
 import io, os
-from . import dispaca
 
 ## CONSTANTS
 TOKEN = os.environ.get("DISCORD_TOKEN")
@@ -20,6 +19,21 @@ account = api.get_account()
 api.list_positions()
 
 bot = commands.Bot(command_prefix='>')
+
+## Embed Generation was done with the help of the discord embed sandbox
+## https://cog-creators.github.io/discord-embed-sandbox/
+
+def generate_account_embed(account_info) -> discord.Embed:
+    """ 
+    Account details are found in the API documetnation
+    https://alpaca.markets/docs/api-documentation/api-v2/account/
+    """
+    embed=discord.Embed(title="Account Status", color=0x22ff00)
+    embed.add_field(name="Cash", value=f"${account_info['cash']}", inline=True)
+    embed.add_field(name="Buying Power", value=f"${account_info['buying_power']}", inline=True)
+    embed.add_field(name="Portfolio Power", value=f"{account_info['portfolio_value']}", inline=True)
+
+    return embed
 
 @bot.command()
 async def positions(context):
@@ -64,7 +78,7 @@ async def check(context, *ticker):
 async def account(context):
     print(f"Checking account")
     account_info = api.get_account()
-    account_embed = dispaca.generate_account_embed(account_info)
+    account_embed = generate_account_embed(account_info)
     await context.send(embed=account_embed)
 
 @bot.command()
