@@ -9,6 +9,8 @@ import matplotlib.pyplot as plt
 ## Useful imports to have
 import io, os
 from asyncio import TimeoutError
+from datetime import datetime
+import pandas as pd
 ## Environmental Consts
 ## These are set in the Dockerfile
 DISCORD_TOKEN = os.environ.get("DISCORD_TOKEN")
@@ -26,20 +28,32 @@ alpaca_api = tradeapi.REST(ALPACA_KEY_ID,
 
 ## Initialize our Discord bot
 bot = commands.Bot(command_prefix='>')
-## Create our first command
-@bot.command()
-async def hello_world(context):
-    await context.send("Hello Dispaca!")
+
+def format_position(position):
+    net = float(position.unrealized_pl)
+    pct_change = float(position.unrealized_plpc)
+    qty = float(position.qty) # Turn this into a float cause fractional trading
+    mkt_value = float(position.market_value)
+    current_price = float(position.current_price)
+    avg_entry_price = float(position.avg_entry_price)
+
+    pass
+
+def generate_profile_embed(positions):
+    pass
 
 def generate_account_embed(account):
     embed=discord.Embed(title="Account Status", 
                        description="Alpaca Markets Account Status", 
                        color=0x47c02c)
     
+    balance_change = float(account.equity) - float(account.last_equity)
+
     embed.add_field(name="Cash", value=f"${account.cash}")
     embed.add_field(name="Buying Power", value=f"${account.buying_power}")
     embed.add_field(name="Portfolio Value", value=f"${account.portfolio_value}")
     embed.add_field(name="Equity", value=f"${account.equity}")
+    embed.add_field(name="Today's balance change", value=f"${balance_change:0.2f}")
     
     return embed
 ## Replace the previous instance of this function in bot.py
@@ -47,8 +61,18 @@ def generate_account_embed(account):
 async def account(context):
     print(f"Checking account")
     account_info = alpaca_api.get_account()
+    profile_history = alpaca_api.get_portfolio_history()
     account_embed = generate_account_embed(account_info)
-    await context.send(embed=account_embed)
+
+    fig = io.BytesIO()
+    plt.title("Account History")
+    plt.xlabel("Last month")
+    time_stamps = list(map(datetime.fromtimestamp, profile_history.timestamp))
+    plt.plot(time_stamps, profile_history.equity)
+    plt.savefig(fig, format="png")
+    fig.seek(0)
+    await context.send(embed=account_embed, file=discord.File(fig, "account_history.png"))
+    plt.close()
 
 @bot.command()
 async def check(context, ticker):
@@ -79,14 +103,49 @@ async def check(context, ticker):
     except Exception as e:
       await context.send(f"Error getting the stock's data: {e}")
 
-def get_last_price(ticker) -> float:
+
+@bot.command()
+async def profile(context):
+    positions = alpaca_api.list_positions()
+    positions_embed = discord.Embed(title="Positions")
+    for p in positions:
+        net = f"${float(p.unrealized_pl):0.2f}"
+        pct_change = f"{float(p.unrealized_plpc)*100:0.2f}%"
+        qty = f"{float(p.qty)}" # Turn this into a float cause fractional trading
+        mkt_value = f"${float(p.market_value):0.2f}"
+        current_price = f"${float(p.current_price):0.2f}"
+        avg_entry_price = f"${float(p.avg_entry_price):0.2f}"
+
+        field_value = f"**Net**: {net}\n\
+                        **%**: {pct_change}\n\
+                        **Qty**: {qty}\n\
+                        **Entry**: {avg_entry_price}\n\
+                        **Current**: {current_price}\n\
+                        **Market**: {mkt_value}"
+
+        positions_embed.add_field(name=f"{p.symbol}", value=field_value, inline=True)
+        # If the last field we added makes our embed too large, pop it and split the message
+        if len(positions_embed) > 6000:
+            print(f"Too large of an embed {len(positions_embed)}")
+            positions_embed.remove_field(-1)
+            print(f"After removing field {len(positions_embed)}")
+            print(f"{len(positions_embed._fields)}")
+            await context.send(embed=positions_embed)
+            positions_embed = discord.Embed(title="Positions")
+            positions_embed.add_field(name=f"{p.symbol}", value=field_value, inline=False)
+
+    print(len(positions_embed))
+    await context.send(embed=positions_embed)
+
+def get_last_price(ticker):
     last_price = 0.0
 
     if isinstance(ticker, str):
         ticker = ticker.upper()
     try:
         last_trade = alpaca_api.get_last_trade(ticker)
-        last_price = float(last_trade.price)
+        print(last_trade)
+        last_price = last_trade.price
     except Exception as e:
         last_price = -1.0
     

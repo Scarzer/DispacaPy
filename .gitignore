@@ -1,3 +1,4 @@
 .vscode/
 discordbot_env/
 config.toml
+venv/
