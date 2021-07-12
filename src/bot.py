@@ -159,24 +159,38 @@ async def last_price(context, ticker):
     except Exception as e:
         await context.send(f"Error getting the last price: {e}")
 
+
 def generate_buy_embed(ticker, quantity, market_price) -> discord.Embed:
+    return generate_order_embed(ticker, quantity, market_price, "buy")
+
+def generate_sell_embed(ticker, quantity, market_price) -> discord.Embed:
+    return generate_order_embed(ticker, quantity, market_price, "sell")
+
+def generate_order_embed(ticker, quantity, market_price, order_type) -> discord.Embed:
     embed = discord.Embed()
 
+    verb = "Buying" if order_type == "buy" else "Selling"
+    total_label = "Cost" if order_type == "buy" else "Proceeds"
+
     total_cost = int(quantity) * market_price
-    embed=discord.Embed(title=f"Buying {ticker}", 
-                        description="Review your buy order below. \
-                            React with 👍 to confim in the next 30 seconds")
+    embed=discord.Embed(title=f"{verb} {ticker}",
+                        description=f"Review your {order_type} order below. \
+                            React with 👍 to confirm in the next 30 seconds")
     embed.add_field(name="Quantity", value=f"{quantity}", inline=False)
     embed.add_field(name="Per Share Cost", value=f"${market_price}", inline=False)
-    embed.add_field(name="Estimated Cost", value=f"${total_cost}", inline=False)
+    embed.add_field(name=f"Estimated {total_label}", value=f"${total_cost}", inline=False)
     embed.add_field(name="In Force", value="Good Until Cancelled", inline=False )
-    
+
     return embed
 
 @bot.command()
 async def buy(context, ticker, quantity):
     if isinstance(ticker, str):
         ticker = ticker.upper()
+
+    if not quantity or int(quantity) <= 0:
+        await context.send("Please enter a positive quantity")
+        return
 
     ## Lets get some supporting information about this stock
     try:
@@ -204,9 +218,65 @@ async def buy(context, ticker, quantity):
         if str(reaction.emoji) == '👍':
             await context.send("Executing on the trade")
 
-            placed_order = alpaca_api.submit_order(symbol=ticker, qty=quantity, 
+            placed_order = alpaca_api.submit_order(symbol=ticker, qty=quantity,
                                 side='buy', type='market', time_in_force='gtc')
-            await context.send(f"Placed orderd ID: {placed_order.id}")
+            await context.send(f"Placed order ID: {placed_order.id}")
+        else:
+            await context.send("Unexpected response. Cancelling Order")
+
+@bot.command()
+async def sell(context, ticker, quantity):
+    if isinstance(ticker, str):
+        ticker = ticker.upper()
+
+    if not quantity or int(quantity) <= 0:
+        await context.send("Please enter a positive quantity")
+        return
+
+    ## Lets get some supporting information about this stock
+    try:
+        last_trade = alpaca_api.get_last_trade(ticker)
+        last_price = last_trade.price
+    except Exception as e:
+        await context.send(f"Error getting the last price: {e}")
+        return
+
+    try:
+        position = alpaca_api.get_position(ticker)
+    except Exception as e:
+        await context.send(f"Error getting position: {e}")
+        return
+
+    if not position or position.qty == "0":
+        await context.send(f"You have no position for {ticker}")
+        return
+
+    position_quantity = int(position.qty)
+    if position_quantity < quantity:
+        await context.send(f"You only have {position_quantity} shares. You need {quantity}.")
+        return
+
+    sell_embed = generate_sell_embed(ticker, quantity, last_price)
+
+    await context.send(embed=sell_embed)
+
+    ## Use this check to make sure the bot invoker is the only one to react
+    def check(reaction, user):
+        return user == context.message.author
+
+    try:
+        ## Wait for a reaction event. 30second timeout.
+        reaction, user = await bot.wait_for("reaction_add", timeout=30.0, check=check)
+    except TimeoutError:
+        await context.send("Cancelling the trade. No activity")
+
+    else:
+        if str(reaction.emoji) == '👍':
+            await context.send("Executing on the trade")
+
+            placed_order = alpaca_api.submit_order(symbol=ticker, qty=quantity,
+                                side='sell', type='market', time_in_force='gtc')
+            await context.send(f"Placed order ID: {placed_order.id}")
         else:
             await context.send("Unexpected response. Cancelling Order")
 
